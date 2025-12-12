@@ -7,7 +7,35 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, sans-serif; padding: 1rem; background: #111; color: #fff; }
-        h1 { text-align: center; margin-bottom: 1rem; font-size: 1.5rem; }
+        
+        /* Search */
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 500px;
+            margin: 0 auto 1.5rem;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: #222;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .search-box input::placeholder { color: #666; }
+        .search-box button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            background: #0066cc;
+            color: #fff;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .search-box button:hover { background: #0077ee; }
+
         #status { text-align: center; padding: 2rem; color: #888; }
         .gallery {
             display: grid;
@@ -23,32 +51,79 @@
             transition: transform 0.2s;
         }
         .gallery img:hover { transform: scale(1.05); }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+            cursor: pointer;
+            min-width: 40px;
+        }
+        .pagination button:hover { background: #555; }
+        .pagination button.current { background: #0066cc; cursor: default; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
         @media (min-width: 768px) {
             .gallery { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
         }
     </style>
 </head>
 <body>
-    <h1>Video Gallery</h1>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search videos...">
+        <button onclick="doSearch()">Search</button>
+    </div>
     <div id="status">Loading...</div>
     <div class="gallery" id="gallery"></div>
+    <div class="pagination" id="pagination"></div>
 
     <script>
-        const TARGET_URL = 'https://desibf.com'; // Change this to your target URL
+        const BASE_URL = 'https://abc.com';
         const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+        
+        let currentSearch = '';
 
-        async function fetchAndParse() {
+        // Handle Enter key in search box
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        function doSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            currentSearch = query;
+            const url = query ? `${BASE_URL}/?s=${encodeURIComponent(query)}` : BASE_URL;
+            fetchPage(url);
+        }
+
+        async function fetchPage(url) {
             const status = document.getElementById('status');
             const gallery = document.getElementById('gallery');
+            const pagination = document.getElementById('pagination');
+
+            status.style.display = 'block';
+            status.textContent = 'Loading...';
+            gallery.innerHTML = '';
+            pagination.innerHTML = '';
 
             try {
-                const response = await fetch(CORS_PROXY + encodeURIComponent(TARGET_URL));
+                const response = await fetch(CORS_PROXY + encodeURIComponent(url));
                 if (!response.ok) throw new Error('Fetch failed');
                 
                 const html = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
 
+                // Parse videos
                 const videosList = doc.querySelector('.videos-list');
                 if (!videosList) throw new Error('videos-list not found');
 
@@ -57,7 +132,10 @@
 
                 articles.forEach(article => {
                     const img = article.querySelector('img.video-main-thumb');
-                    if (img && img.src) images.push(img.src);
+                    if (img) {
+                        const src = img.getAttribute('src') || img.getAttribute('data-src');
+                        if (src) images.push(src);
+                    }
                 });
 
                 if (images.length === 0) throw new Error('No images found');
@@ -71,13 +149,35 @@
                     gallery.appendChild(img);
                 });
 
+                // Parse pagination
+                const paginationDiv = doc.querySelector('.pagination ul');
+                if (paginationDiv) {
+                    const links = paginationDiv.querySelectorAll('li a');
+                    links.forEach(link => {
+                        const btn = document.createElement('button');
+                        btn.textContent = link.textContent.trim();
+                        
+                        if (link.classList.contains('current')) {
+                            btn.classList.add('current');
+                            btn.disabled = true;
+                        } else {
+                            const href = link.getAttribute('href');
+                            btn.onclick = () => fetchPage(href || BASE_URL);
+                        }
+                        pagination.appendChild(btn);
+                    });
+                }
+
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
             } catch (err) {
                 status.textContent = 'Error: ' + err.message;
                 console.error(err);
             }
         }
 
-        fetchAndParse();
+        // Initial load
+        fetchPage(BASE_URL);
     </script>
 </body>
 </html>
