@@ -1,12 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello World</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; padding: 1rem; background: #111; color: #fff; }
+        h1 { text-align: center; margin-bottom: 1rem; font-size: 1.5rem; }
+        #status { text-align: center; padding: 2rem; color: #888; }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 0.5rem;
+        }
+        .gallery img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery img:hover { transform: scale(1.05); }
+        @media (min-width: 768px) {
+            .gallery { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+        }
+    </style>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <p>This is a simple index.html file.</p>
+    <h1>Video Gallery</h1>
+    <div id="status">Loading...</div>
+    <div class="gallery" id="gallery"></div>
+
+    <script>
+        const TARGET_URL = 'https://desibf.com'; // Change this to your target URL
+        const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+        async function fetchAndParse() {
+            const status = document.getElementById('status');
+            const gallery = document.getElementById('gallery');
+
+            try {
+                const response = await fetch(CORS_PROXY + encodeURIComponent(TARGET_URL));
+                if (!response.ok) throw new Error('Fetch failed');
+                
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                const videosList = doc.querySelector('.videos-list');
+                if (!videosList) throw new Error('videos-list not found');
+
+                const articles = videosList.querySelectorAll('article');
+                const images = [];
+
+                articles.forEach(article => {
+                    const img = article.querySelector('img.video-main-thumb');
+                    if (img && img.src) images.push(img.src);
+                });
+
+                if (images.length === 0) throw new Error('No images found');
+
+                status.style.display = 'none';
+                images.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.loading = 'lazy';
+                    img.alt = 'Video thumbnail';
+                    gallery.appendChild(img);
+                });
+
+            } catch (err) {
+                status.textContent = 'Error: ' + err.message;
+                console.error(err);
+            }
+        }
+
+        fetchAndParse();
+    </script>
 </body>
 </html>
