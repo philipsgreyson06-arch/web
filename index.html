@@ -78,6 +78,36 @@
         video::-webkit-media-controls-panel {
             background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
         }
+
+        /* Responsive video player - handles both portrait and landscape */
+        .video-responsive {
+            max-width: 90vw;
+            max-height: 75vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        /* Portrait video specific adjustments */
+        @media (max-width: 640px) {
+            .video-responsive {
+                max-width: 95vw;
+                max-height: 70vh;
+            }
+        }
+
+        /* Landscape mode on mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .video-responsive {
+                max-height: 85vh;
+                max-width: 95vw;
+            }
+        }
+
+        #videoContainer {
+            min-width: 280px;
+            min-height: 200px;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
@@ -157,26 +187,26 @@
     <div id="videoModal" class="fixed inset-0 z-50 hidden">
         <div class="modal-backdrop absolute inset-0 bg-black/90" onclick="closeVideoModal()"></div>
         <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
-            <div class="w-full max-w-4xl">
+            <div class="flex flex-col items-center w-full">
                 <!-- Modal Header -->
-                <div class="flex justify-between items-center mb-2">
-                    <h3 id="videoTitle" class="text-lg font-semibold truncate pr-4"></h3>
-                    <button onclick="closeVideoModal()" class="p-2 hover:bg-gray-800 rounded-full transition-colors">
+                <div class="flex justify-between items-center mb-2 w-full max-w-4xl px-2">
+                    <h3 id="videoTitle" class="text-lg font-semibold truncate pr-4 flex-1"></h3>
+                    <button onclick="closeVideoModal()" class="p-2 hover:bg-gray-800 rounded-full transition-colors flex-shrink-0">
                         <i class="fas fa-times text-2xl"></i>
                     </button>
                 </div>
                 
-                <!-- Video Player Container -->
-                <div class="relative bg-black rounded-lg overflow-hidden">
+                <!-- Video Player Container - Responsive for both portrait and landscape -->
+                <div id="videoContainer" class="relative bg-black rounded-lg overflow-hidden flex items-center justify-center">
                     <!-- Video Loading -->
-                    <div id="videoLoading" class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                    <div id="videoLoading" class="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
                         <div class="loader"></div>
                     </div>
                     
                     <!-- Video Player -->
                     <video 
                         id="videoPlayer" 
-                        class="w-full aspect-video"
+                        class="video-responsive"
                         controls 
                         playsinline
                         preload="metadata"
@@ -186,7 +216,7 @@
                 </div>
 
                 <!-- Video Controls Info -->
-                <div class="mt-3 flex justify-between items-center text-sm text-gray-400">
+                <div class="mt-3 flex justify-between items-center text-sm text-gray-400 w-full max-w-4xl px-2">
                     <span>Tap video for controls</span>
                     <button onclick="toggleFullscreen()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
                         <i class="fas fa-expand mr-2"></i>Fullscreen
@@ -200,9 +230,10 @@
         // Configuration
         const CONFIG = {
             baseUrl: 'https://www.kamababa.desi',
-            corsProxy: 'https://api.allorigins.win/raw?url=',
+            corsProxy: 'https://corsproxy.io/?url=',
             // Alternative proxies if needed:
-            // corsProxy: 'https://corsproxy.io/?',
+            // corsProxy: 'https://api.allorigins.win/raw?url=',
+            // corsProxy: 'https://api.cors.lol/?url=',
             // corsProxy: 'https://api.codetabs.com/v1/proxy?quest=',
         };
 
@@ -226,6 +257,7 @@
             paginationContainer: document.getElementById('paginationContainer'),
             pagination: document.getElementById('pagination'),
             videoModal: document.getElementById('videoModal'),
+            videoContainer: document.getElementById('videoContainer'),
             videoPlayer: document.getElementById('videoPlayer'),
             videoLoading: document.getElementById('videoLoading'),
             videoTitle: document.getElementById('videoTitle'),
@@ -265,6 +297,10 @@
 
             // Video player events
             elements.videoPlayer.addEventListener('loadeddata', () => {
+                elements.videoLoading.classList.add('hidden');
+            });
+
+            elements.videoPlayer.addEventListener('canplay', () => {
                 elements.videoLoading.classList.add('hidden');
             });
 
